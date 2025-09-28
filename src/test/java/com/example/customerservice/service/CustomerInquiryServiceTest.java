@@ -1,6 +1,7 @@
 package com.example.customerservice.service;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
@@ -16,26 +17,27 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.test.web.client.ExpectedCount;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestTemplate;
 
 import com.example.customerservice.dto.CustomerInquiryResponse;
-import com.example.customerservice.dto.ErrorResponse;
+import com.example.customerservice.exception.CustomerNotFoundException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 @SpringBootTest
 @AutoConfigureWebClient
 class CustomerInquiryServiceTest {
 
-    @Autowired
+	@Autowired
     private CustomerInquiryService inquiryService;
 
     @Autowired
     private RestTemplate restTemplate;
 
     private MockRestServiceServer mockServer;
+
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     @BeforeEach
     void setup() {
@@ -52,8 +54,6 @@ class CustomerInquiryServiceTest {
         mockResponse.setTransactionStatusCode(302);
         mockResponse.setTransactionStatusDescription("Customer Account found");
 
-        ObjectMapper objectMapper = new ObjectMapper();
-
         mockServer.expect(ExpectedCount.once(), requestTo(url))
             .andExpect(method(HttpMethod.GET))
             .andRespond(withSuccess(
@@ -61,9 +61,10 @@ class CustomerInquiryServiceTest {
                 MediaType.APPLICATION_JSON
             ));
 
-        ResponseEntity<?> response = inquiryService.getCustomerByNumber(customerNumber);
+        CustomerInquiryResponse response = inquiryService.getCustomerByNumber(customerNumber);
 
-        assertEquals(302, ((CustomerInquiryResponse) response.getBody()).getTransactionStatusCode());
+        assertEquals(302, response.getTransactionStatusCode());
+        assertEquals(customerNumber, response.getCustomerNumber());
         mockServer.verify();
     }
 
@@ -76,10 +77,11 @@ class CustomerInquiryServiceTest {
             .andExpect(method(HttpMethod.GET))
             .andRespond(withStatus(HttpStatus.NOT_FOUND));
 
-        ResponseEntity<?> response = inquiryService.getCustomerByNumber(customerNumber);
+        CustomerNotFoundException exception = assertThrows(CustomerNotFoundException.class, () -> {
+            inquiryService.getCustomerByNumber(customerNumber);
+        });
 
-        assertEquals(401, ((ErrorResponse) response.getBody()).getTransactionStatusCode());
-        assertEquals("Customer not found", ((ErrorResponse) response.getBody()).getTransactionStatusDescription());
+        assertTrue(exception.getMessage().contains("Customer not found"));
         mockServer.verify();
     }
 
@@ -92,10 +94,11 @@ class CustomerInquiryServiceTest {
             .andExpect(method(HttpMethod.GET))
             .andRespond(withServerError());
 
-        ResponseEntity<?> response = inquiryService.getCustomerByNumber(customerNumber);
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+            inquiryService.getCustomerByNumber(customerNumber);
+        });
 
-        assertEquals(500, ((ErrorResponse) response.getBody()).getTransactionStatusCode());
-        assertTrue(((ErrorResponse) response.getBody()).getTransactionStatusDescription().contains("Internal Server Error"));
+        assertTrue(exception.getMessage().contains("Internal Server Error"));
         mockServer.verify();
     }
 }
