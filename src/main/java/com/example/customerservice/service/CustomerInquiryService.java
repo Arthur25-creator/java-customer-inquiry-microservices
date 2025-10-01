@@ -1,6 +1,7 @@
 package com.example.customerservice.service;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 import org.springframework.web.client.HttpClientErrorException;
@@ -11,14 +12,14 @@ import com.example.customerservice.exception.CustomerNotFoundException;
 
 @Service
 public class CustomerInquiryService {
+	@Value("${account-service.base-url}")
+	private String accountServiceBaseUrl;
 
 	@Autowired
     private RestTemplate restTemplate;
 
-    private final String ACCOUNT_SERVICE_URL = "http://localhost:8080/api/v1/account"; 
-
     public CustomerInquiryResponse getCustomerByNumber(Long customerNumber) {
-        String url = ACCOUNT_SERVICE_URL + "/" + customerNumber;
+    	String url = accountServiceBaseUrl + "/api/v1/account/" + customerNumber;
 
         try {
             ResponseEntity<CustomerInquiryResponse> response =

@@ -12,6 +12,7 @@ import static org.springframework.test.web.client.response.MockRestResponseCreat
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.autoconfigure.web.client.AutoConfigureWebClient;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpMethod;
@@ -28,6 +29,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 @SpringBootTest
 @AutoConfigureWebClient
 class CustomerInquiryServiceTest {
+	
+	@Value("${account-service.base-url}")
+    private String accountServiceBaseUrl;
 
 	@Autowired
     private CustomerInquiryService inquiryService;
@@ -47,7 +51,7 @@ class CustomerInquiryServiceTest {
     @Test
     void getCustomerByNumber_success() throws Exception {
         Long customerNumber = 123L;
-        String url = "http://localhost:8080/api/v1/account/" + customerNumber;
+        String url = accountServiceBaseUrl + "/api/v1/account/" + customerNumber;
 
         CustomerInquiryResponse mockResponse = new CustomerInquiryResponse();
         mockResponse.setCustomerNumber(customerNumber);
@@ -71,7 +75,7 @@ class CustomerInquiryServiceTest {
     @Test
     void getCustomerByNumber_notFound() {
         Long customerNumber = 999L;
-        String url = "http://localhost:8080/api/v1/account/" + customerNumber;
+        String url = accountServiceBaseUrl + "/api/v1/account/" + customerNumber;
 
         mockServer.expect(requestTo(url))
             .andExpect(method(HttpMethod.GET))
@@ -88,7 +92,7 @@ class CustomerInquiryServiceTest {
     @Test
     void getCustomerByNumber_internalServerError() {
         Long customerNumber = 123L;
-        String url = "http://localhost:8080/api/v1/account/" + customerNumber;
+        String url = accountServiceBaseUrl + "/api/v1/account/" + customerNumber;
 
         mockServer.expect(requestTo(url))
             .andExpect(method(HttpMethod.GET))
